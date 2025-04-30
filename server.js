@@ -51,7 +51,7 @@ app.post("/signin", async (req, res) => {
 
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
   let data = {
-    time: Date(),
+    expiresAt: Date.now() + 8 * 60 * 60 * 1000,
     userId: user.id,
   };
   const token = jwt.sign(data, jwtSecretKey);
