@@ -6,8 +6,9 @@ const { Sequelize, DataTypes } = require("sequelize");
 const bodyparser = require("body-parser");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
-
+const models = require("./models");
 const app = express();
+
 app.use(cors());
 app.use(bodyparser.json());
 
@@ -29,38 +30,50 @@ app.post("/signup", async (req, res) => {
   const password = req.body.password;
   const salt = await bcrypt.genSalt(saltRounds);
   const hash = await bcrypt.hash(password, salt);
-  const newUser = await User.create({ email: email, password: hash });
+  const newUser = await models.User.create({ email: email, password: hash });
   res.json(newUser);
 });
 
-app.post("/signin", (req, res) => {
+app.post("/signin", async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const user = await models.User.findOne({ where: { email: email } });
+
+  if (user === null) {
+    return res.status(404).json({ message: "Not found" });
+  }
+
+  const userCheck = await bcrypt.compare(password, user.password);
+
+  if (userCheck === false) {
+    return res.status(404).json({ message: "Password not found" });
+  }
+
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
   let data = {
     time: Date(),
-    userId: 12,
+    userId: user.id,
   };
   const token = jwt.sign(data, jwtSecretKey);
   res.json(token);
 });
 
-app.get("/signin", (req, res) => {
-  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  let jwtSecretKey = process.env.JWT_SECRET_KEY;
-  try {
-    const token = req.header(tokenHeaderKey);
+// app.get("/signin", (req, res) => {
+//   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+//   let jwtSecretKey = process.env.JWT_SECRET_KEY;
+//   try {
+//     const token = req.header(tokenHeaderKey);
 
-    const verified = jwt.verify(token, jwtSecretKey);
-    if (verified) {
-      return res.json("Successfully Verified");
-    } else {
-      return res.status(401).send(error);
-    }
-  } catch (error) {
-    return res.status(401).send(error);
-  }
-});
+//     const verified = jwt.verify(token, jwtSecretKey);
+//     if (verified) {
+//       return res.json("Successfully Verified");
+//     } else {
+//       return res.status(401).send(error);
+//     }
+//   } catch (error) {
+//     return res.status(401).send(error);
+//   }
+// });
 
 app.get("/user", (req, res) => {
   res.json("This is your user information");
