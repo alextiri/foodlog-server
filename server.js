@@ -7,8 +7,6 @@ const bodyparser = require("body-parser");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const models = require("./models");
-const user = require("./models/user");
-const db = require("./models");
 const app = express();
 
 app.use(cors());
