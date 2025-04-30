@@ -42,7 +42,9 @@ app.post("/signin", async (req, res) => {
   if (user === null) {
     return res.status(404).json({ message: "Not found" });
   }
+
   const userCheck = await bcrypt.compare(password, user.password);
+
   if (userCheck === false) {
     return res.status(404).json({ message: "Password not found" });
   }
