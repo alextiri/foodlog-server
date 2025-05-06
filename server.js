@@ -2,12 +2,14 @@ const express = require("express");
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const { Sequelize, DataTypes } = require("sequelize");
+const { Sequelize, DataTypes, where } = require("sequelize");
 const bodyparser = require("body-parser");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const models = require("./models");
 const app = express();
+const verify = require("./utils/jwt");
+const pagination = require("./utils/pagination");
 
 app.use(cors());
 app.use(bodyparser.json());
@@ -58,23 +60,129 @@ app.post("/signin", async (req, res) => {
   res.json(token);
 });
 
-// app.get("/signin", (req, res) => {
-//   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-//   let jwtSecretKey = process.env.JWT_SECRET_KEY;
-//   try {
-//     const token = req.header(tokenHeaderKey);
+app.post("/foodentry", async (req, res) => {
+  const name = req.body.name;
+  const weight = req.body.weight;
+  const calories = req.body.calories;
+  const proteins = req.body.proteins;
+  const fats = req.body.fats;
+  const carbs = req.body.carbs;
+  const timestamp = Date.now();
+  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  let jwtSecretKey = process.env.JWT_SECRET_KEY;
+  const token = req.header(tokenHeaderKey);
+  const verified = jwt.verify(token, jwtSecretKey);
+  const newFoodEntry = await models.FoodEntry.create({
+    userId: verified.userId,
+    name: name,
+    weight: weight,
+    calories: calories,
+    proteins: proteins,
+    fats: fats,
+    carbs: carbs,
+    timestamp: timestamp,
+  });
+  res.json(newFoodEntry);
+});
 
-//     const verified = jwt.verify(token, jwtSecretKey);
-//     if (verified) {
-//       return res.json("Successfully Verified");
-//     } else {
-//       return res.status(401).send(error);
-//     }
-//   } catch (error) {
-//     return res.status(401).send(error);
-//   }
-// });
+app.delete("/foodentry/:id", async (req, res) => {
+  const id = req.params["id"];
+  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  const userId = verify.verifyJWT(req.header(tokenHeaderKey));
 
-app.get("/user", (req, res) => {
-  res.json("This is your user information");
+  if (userId === null) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+  const deletedFoodEntry = await models.FoodEntry.findOne({
+    where: { id: id },
+  });
+
+  if (userId !== deletedFoodEntry.userId) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  await models.FoodEntry.destroy({ where: { id: id } });
+
+  res.json({ message: "Entry deleted" });
+});
+
+app.patch("/foodentry/:id", async (req, res) => {
+  const id = req.params["id"];
+  const name = req.body.name;
+  const weight = req.body.weight;
+  const calories = req.body.calories;
+  const proteins = req.body.proteins;
+  const fats = req.body.fats;
+  const carbs = req.body.carbs;
+  const timestamp = req.body.timestamp;
+  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  const userId = verify.verifyJWT(req.header(tokenHeaderKey));
+
+  if (userId === null) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  const updatedFoodEntry = await models.FoodEntry.findOne({
+    where: { id: id },
+  });
+
+  if (userId !== updatedFoodEntry.userId) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  await models.FoodEntry.update(
+    {
+      name: name,
+      weight: weight,
+      calories: calories,
+      proteins: proteins,
+      fats: fats,
+      carbs: carbs,
+      timestamp: timestamp,
+    },
+    { where: { id: id } },
+  );
+  res.json({ message: "Entry updated" });
+});
+
+app.get("/foodentry/:id", async (req, res) => {
+  const id = req.params["id"];
+  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  const userId = verify.verifyJWT(req.header(tokenHeaderKey));
+
+  if (userId === null) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  const foodEntry = await models.FoodEntry.findOne({ where: { id: id } });
+
+  if (userId !== foodEntry.userId) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  res.json(foodEntry);
+});
+
+app.get("/foodentries", async (req, res) => {
+  let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  const pageSize = req.query.pageSize;
+  const pageOffset = req.query.pageOffset;
+  const userId = verify.verifyJWT(req.header(tokenHeaderKey));
+
+  if (userId === null) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  const validation = pagination.parsePagination(pageSize, pageOffset);
+  if (typeof validation === "string") {
+    return res.status(401).json({ message: validation });
+  }
+
+  const foodEntries = await models.FoodEntry.findAll({
+    where: { userId: userId },
+    limit: validation.limit,
+    offset: validation.offset,
+  });
+
+  res.json(foodEntries);
 });
