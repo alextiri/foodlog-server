@@ -67,13 +67,7 @@ app.post("/foodentry", async (req, res) => {
   const proteins = req.body.proteins;
   const fats = req.body.fats;
   const carbs = req.body.carbs;
-  const timestamp = () => {
-    if (req.body.timestamp === undefined) {
-      return Date.now();
-    } else {
-      return req.body.timestamp;
-    }
-  };
+  const timestamp = req.body.timestamp ?? Date.now();
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
   const userId = verify.verifyJWT(req.header(tokenHeaderKey));
   const newFoodEntry = await models.FoodEntry.create({
@@ -84,7 +78,7 @@ app.post("/foodentry", async (req, res) => {
     proteins: proteins,
     fats: fats,
     carbs: carbs,
-    timestamp: timestamp(),
+    timestamp: timestamp,
   });
   res.json(newFoodEntry);
 });
@@ -118,13 +112,7 @@ app.patch("/foodentry/:id", async (req, res) => {
   const proteins = req.body.proteins;
   const fats = req.body.fats;
   const carbs = req.body.carbs;
-  const timestamp = () => {
-    if (req.body.timestamp === undefined) {
-      return Date.now();
-    } else {
-      return req.body.timestamp;
-    }
-  };
+  const timestamp = req.body.timestamp ?? Date.now();
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
   const userId = verify.verifyJWT(req.header(tokenHeaderKey));
 
@@ -148,7 +136,7 @@ app.patch("/foodentry/:id", async (req, res) => {
       proteins: proteins,
       fats: fats,
       carbs: carbs,
-      timestamp: timestamp(),
+      timestamp: timestamp,
     },
     { where: { id: id } },
   );
