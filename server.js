@@ -67,26 +67,30 @@ app.post("/foodentry", async (req, res) => {
   const proteins = req.body.proteins;
   const fats = req.body.fats;
   const carbs = req.body.carbs;
-  const timestamp = Date.now();
+  const timestamp = () => {
+    if (req.body.timestamp === undefined) {
+      return Date.now();
+    } else {
+      return req.body.timestamp;
+    }
+  };
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  let jwtSecretKey = process.env.JWT_SECRET_KEY;
-  const token = req.header(tokenHeaderKey);
-  const verified = jwt.verify(token, jwtSecretKey);
+  const userId = verify.verifyJWT(req.header(tokenHeaderKey));
   const newFoodEntry = await models.FoodEntry.create({
-    userId: verified.userId,
+    userId: userId,
     name: name,
     weight: weight,
     calories: calories,
     proteins: proteins,
     fats: fats,
     carbs: carbs,
-    timestamp: timestamp,
+    timestamp: timestamp(),
   });
   res.json(newFoodEntry);
 });
 
 app.delete("/foodentry/:id", async (req, res) => {
-  const id = req.params["id"];
+  const id = req.params.id;
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
   const userId = verify.verifyJWT(req.header(tokenHeaderKey));
 
@@ -107,14 +111,20 @@ app.delete("/foodentry/:id", async (req, res) => {
 });
 
 app.patch("/foodentry/:id", async (req, res) => {
-  const id = req.params["id"];
+  const id = req.params.id;
   const name = req.body.name;
   const weight = req.body.weight;
   const calories = req.body.calories;
   const proteins = req.body.proteins;
   const fats = req.body.fats;
   const carbs = req.body.carbs;
-  const timestamp = req.body.timestamp;
+  const timestamp = () => {
+    if (req.body.timestamp === undefined) {
+      return Date.now();
+    } else {
+      return req.body.timestamp;
+    }
+  };
   let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
   const userId = verify.verifyJWT(req.header(tokenHeaderKey));
 
@@ -138,7 +148,7 @@ app.patch("/foodentry/:id", async (req, res) => {
       proteins: proteins,
       fats: fats,
       carbs: carbs,
-      timestamp: timestamp,
+      timestamp: timestamp(),
     },
     { where: { id: id } },
   );
